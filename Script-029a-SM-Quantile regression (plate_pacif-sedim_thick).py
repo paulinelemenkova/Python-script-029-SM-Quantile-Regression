@@ -1,39 +1,35 @@
 #!/usr/bin/env python
 # coding: utf-8
-
-# In[11]:
-
-
-# Quantile regression
-# Step-1. Load libraries
 from __future__ import print_function
 #get_ipython().run_line_magic('matplotlib', 'inline')
+import os
 import patsy
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
-import matplotlib.pyplot as plt
 from statsmodels.regression.quantile_regression import QuantReg
+import matplotlib.pyplot as plt
 import seaborn as sns
-import os
-sns.set_style('whitegrid')
 
-# Step-2. Import data
+sns.set_style('whitegrid')
+sns.set_context('paper')
+
 os.chdir('/Users/pauline/Documents/Python')
 data = pd.read_csv("Tab-Morph.csv")
 
-# Step-3. Least Absolute Deviation
+# Least Absolute Deviation
 mod = smf.quantreg('profile ~ plate_pacif', data)
 res = mod.fit(q=.5)
 print(res.summary())
 
-# Step-4. Placing the quantile regression results in a Pandas DataFrame, and the OLS results in a dictionary
+# Placing the quantile regression results in a Pandas DataFrame, and the OLS results in a dictionary
 quantiles = np.arange(.05, .96, .1)
 def fit_model(q):
     res = mod.fit(q=q)
-    return [q, res.params['Intercept'], res.params['plate_pacif']] +             res.conf_int().loc['plate_pacif'].tolist()
-    
+    return [q, res.params['Intercept'], res.params['plate_pacif']] + \
+        res.conf_int().loc['plate_pacif'].tolist()
+
 models = [fit_model(x) for x in quantiles]
 models = pd.DataFrame(models, columns=['q', 'a', 'b','lb','ub'])
 
@@ -47,16 +43,19 @@ ols = dict(a = ols.params['Intercept'],
 print(models)
 print(ols)
 
-# Step-5. 
+# Plotting
 x = np.arange(data.plate_pacif.min(), data.plate_pacif.max(), 5)
 get_y = lambda a, b: a + b * x
 
-fig, ax = plt.subplots(figsize=(8, 6))
+fig, ax = plt.subplots(figsize=(8, 6), dpi=300)
 
 for i in range(models.shape[0]):
     y = get_y(models.a[i], models.b[i])
     ax.plot(x, y, linestyle='dotted', color='grey')
-    
+
+bbox_props = dict(boxstyle='round, pad=0.3', fc='w',
+                  edgecolor='grey', linewidth=1, alpha=0.9)
+
 y = get_y(ols['a'], ols['b'])
 
 ax.plot(x, y, color='red', label='OLS')
@@ -69,20 +68,17 @@ ax.set_ylabel('Profile, nr.', fontsize=14);
 
 
 
-plt.title("Mariana Trench: Quantile regression \nof sediment thickness at Pacific Plate by 25 bathymetric profiles", fontsize=14)
-plt.annotate('A', xy=(-0.01, 1.06), xycoords="axes fraction", fontsize=18,
-           bbox=dict(boxstyle='round, pad=0.3', fc='w', edgecolor='grey', linewidth=1, alpha=0.9))
+plt.title("Mariana Trench: Quantile regression \nof sediment thickness\
+          at Pacific Plate by 25 bathymetric profiles",
+          fontsize=14)
+plt.annotate('A', xy=(-0.01, 1.06), xycoords="axes fraction",
+             fontsize=18, bbox=bbox_props)
+
+# visualize and save
+plt.tight_layout()
+plt.subplots_adjust(top=0.85, bottom=0.15,
+                    left=0.10, right=0.95,
+                    hspace=0.25, wspace=0.35
+                    )
+fig.savefig('plot_QRa.png', dpi=300)
 plt.show()
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
